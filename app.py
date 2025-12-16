@@ -1682,14 +1682,22 @@ def render_discover_page(data_path):
         if search_type == "title":
             movie_info = recommender.df[recommender.df['title'] == movie_title].iloc[0]
             st.markdown(f"### You selected: **{movie_title}**")
-            st.caption(f"🎬 {movie_info['listed_in']} • 📅 {movie_info['release_year']}")
+            try:
+                genre_info = movie_info.get('listed_in', 'Unknown')
+                year_info = movie_info.get('release_year', 'N/A')
+                st.caption(f"🎬 {genre_info} • 📅 {year_info}")
+            except:
+                pass
         else:
-            tags_str = ", ".join(movie_title)
+            tags_str = ", ".join(movie_title) if isinstance(movie_title, list) else str(movie_title)
             st.markdown(f"### Genres/Tags: **{tags_str}**")
             all_movies_with_tags = pd.DataFrame()
-            for tag in movie_title:
-                movies_with_tag = recommender.df[recommender.df['listed_in'].str.contains(tag, case=False, na=False)]
-                all_movies_with_tags = pd.concat([all_movies_with_tags, movies_with_tag]).drop_duplicates()
+            for tag in (movie_title if isinstance(movie_title, list) else [movie_title]):
+                try:
+                    movies_with_tag = recommender.df[recommender.df['listed_in'].str.contains(tag, case=False, na=False)]
+                    all_movies_with_tags = pd.concat([all_movies_with_tags, movies_with_tag]).drop_duplicates()
+                except:
+                    pass
             movies_count = len(all_movies_with_tags)
             st.caption(f"🏷️ {movies_count} movies/shows match these tags")
         
@@ -1756,18 +1764,37 @@ def render_analytics_page(data_path):
     </div>
     """, unsafe_allow_html=True)
     
-    df = pd.read_csv(data_path, encoding='latin-1')
+    try:
+        df = pd.read_csv(data_path, encoding='latin-1')
+    except:
+        try:
+            df = pd.read_csv(data_path)
+        except:
+            st.error("❌ Unable to load dataset")
+            return
     
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         st.metric("📚 Total Content", len(df))
     with col2:
-        st.metric("🎬 Movies", len(df[df['Series or Movie'] == 'Movie']))
+        try:
+            movie_count = len(df[df['Series or Movie'] == 'Movie'])
+            st.metric("🎬 Movies", movie_count)
+        except:
+            st.metric("🎬 Movies", "N/A")
     with col3:
-        st.metric("📺 TV Shows", len(df[df['Series or Movie'] == 'Series']))
+        try:
+            series_count = len(df[df['Series or Movie'] == 'Series'])
+            st.metric("📺 TV Shows", series_count)
+        except:
+            st.metric("📺 TV Shows", "N/A")
     with col4:
-        genres_count = len(set(df['Genre'].str.split(',').explode().str.strip()))
-        st.metric("🎭 Genres", genres_count)
+        try:
+            genre_col = 'Genre' if 'Genre' in df.columns else 'listed_in'
+            genres_count = len(set(df[genre_col].str.split(',').explode().str.strip()))
+            st.metric("🎭 Genres", genres_count)
+        except:
+            st.metric("🎭 Genres", "N/A")
     
     st.markdown("---")
     
@@ -1775,36 +1802,12 @@ def render_analytics_page(data_path):
     
     with tab1:
         st.markdown("### Top 12 Genres")
-        genres = df['Genre'].str.split(',').explode().str.strip()
-        genre_counts = genres.value_counts().head(12)
-        fig, ax = plt.subplots(figsize=(12, 6))
-        ax.barh(genre_counts.index, genre_counts.values, color='#e50914', alpha=0.85)
-        ax.set_facecolor('#0a0a0a')
-        fig.patch.set_facecolor('#0a0a0a')
-        ax.spines['top'].set_visible(False)
-        ax.spines['right'].set_visible(False)
-        ax.spines['left'].set_color('#333333')
-        ax.spines['bottom'].set_color('#333333')
-        ax.tick_params(colors='#888888')
-        st.pyplot(fig)
-        
-        with tab2:
-            st.markdown("### Content Distribution")
-            types = df['Series or Movie'].value_counts()
-            fig, ax = plt.subplots(figsize=(8, 6))
-            colors = ['#e50914', '#666666']
-            ax.pie(types, labels=types.index, autopct='%1.0f%%',
-                  colors=colors, textprops={'color': '#ffffff', 'weight': 'bold'})
-            ax.set_facecolor('#0a0a0a')
-            fig.patch.set_facecolor('#0a0a0a')
-            st.pyplot(fig)
-        
-        with tab3:
-            st.markdown("### Release Year Trends")
-            years = pd.to_datetime(df['Release Date'], errors='coerce').dt.year.value_counts().sort_index()
-            fig, ax = plt.subplots(figsize=(12, 5))
-            ax.plot(years.index, years.values, color='#e50914', linewidth=3, marker='o', markersize=7)
-            ax.fill_between(years.index, years.values, alpha=0.25, color='#e50914')
+        try:
+            genre_col = 'Genre' if 'Genre' in df.columns else 'listed_in'
+            genres = df[genre_col].str.split(',').explode().str.strip()
+            genre_counts = genres.value_counts().head(12)
+            fig, ax = plt.subplots(figsize=(12, 6))
+            ax.barh(genre_counts.index, genre_counts.values, color='#e50914', alpha=0.85)
             ax.set_facecolor('#0a0a0a')
             fig.patch.set_facecolor('#0a0a0a')
             ax.spines['top'].set_visible(False)
@@ -1812,12 +1815,54 @@ def render_analytics_page(data_path):
             ax.spines['left'].set_color('#333333')
             ax.spines['bottom'].set_color('#333333')
             ax.tick_params(colors='#888888')
-            ax.grid(True, alpha=0.1)
             st.pyplot(fig)
-        
-        with tab4:
-            st.markdown("### Dataset Preview")
+        except Exception as e:
+            st.error(f"❌ Unable to display genres: {str(e)}")
+    
+    with tab2:
+        st.markdown("### Content Distribution")
+        try:
+            type_col = 'Series or Movie' if 'Series or Movie' in df.columns else 'type'
+            types = df[type_col].value_counts()
+            fig, ax = plt.subplots(figsize=(8, 6))
+            colors = ['#e50914', '#666666']
+            ax.pie(types, labels=types.index, autopct='%1.0f%%',
+                  colors=colors, textprops={'color': '#ffffff', 'weight': 'bold'})
+            ax.set_facecolor('#0a0a0a')
+            fig.patch.set_facecolor('#0a0a0a')
+            st.pyplot(fig)
+        except Exception as e:
+            st.error(f"❌ Unable to display content distribution: {str(e)}")
+    
+    with tab3:
+        st.markdown("### Release Year Trends")
+        try:
+            date_col = 'Release Date' if 'Release Date' in df.columns else 'release_year'
+            years = pd.to_datetime(df[date_col], errors='coerce').dt.year.value_counts().sort_index()
+            if len(years) > 0:
+                fig, ax = plt.subplots(figsize=(12, 5))
+                ax.plot(years.index, years.values, color='#e50914', linewidth=3, marker='o', markersize=7)
+                ax.fill_between(years.index, years.values, alpha=0.25, color='#e50914')
+                ax.set_facecolor('#0a0a0a')
+                fig.patch.set_facecolor('#0a0a0a')
+                ax.spines['top'].set_visible(False)
+                ax.spines['right'].set_visible(False)
+                ax.spines['left'].set_color('#333333')
+                ax.spines['bottom'].set_color('#333333')
+                ax.tick_params(colors='#888888')
+                ax.grid(True, alpha=0.1)
+                st.pyplot(fig)
+            else:
+                st.info("No year data available")
+        except Exception as e:
+            st.error(f"❌ Unable to display year trends: {str(e)}")
+    
+    with tab4:
+        st.markdown("### Dataset Preview")
+        try:
             st.dataframe(df.head(25))
+        except Exception as e:
+            st.error(f"❌ Unable to display dataset: {str(e)}")
 
 
 def render_about_page():
