@@ -1393,7 +1393,12 @@ def get_poster_url(title):
 
 def render_movie_card(rank, title, genre, year, description, similarity, poster_url='', movie_key=''):
     """Render premium movie banner card with animations"""
-    sim_pct = int(similarity * 100)
+    try:
+        if pd.isna(similarity) or similarity is None:
+            similarity = 0
+        sim_pct = max(0, min(100, int(similarity * 100)))
+    except:
+        sim_pct = 0
     
     poster_content = f'<img src="{poster_url}" alt="{title}" class="banner-poster-img">' if poster_url else f'<div class="banner-poster-text">{title.upper()[:15]}</div>'
     
@@ -1706,19 +1711,31 @@ def render_discover_page(data_path):
         st.markdown(f"### 🏆 Top {num_recs} Matches")
         
         for idx, (_, row) in enumerate(recs.iterrows(), 1):
-            st.markdown(
-                render_movie_card(
-                    idx,
-                    row['title'],
-                    row['listed_in'],
-                    row['release_year'],
-                    row['description'],
-                    row['similarity_score'],
-                    row.get('poster_url', ''),
-                    f"rec-{idx}"
-                ),
-                unsafe_allow_html=True
-            )
+            try:
+                title = row.get('title', 'Unknown')
+                genre = row.get('listed_in', 'Unknown')
+                year = row.get('release_year', 'N/A')
+                desc = row.get('description', 'No description available')
+                sim_score = row.get('similarity_score', 0)
+                
+                if pd.isna(sim_score):
+                    sim_score = 0
+                
+                st.markdown(
+                    render_movie_card(
+                        idx,
+                        title,
+                        genre,
+                        year,
+                        desc,
+                        sim_score,
+                        row.get('poster_url', ''),
+                        f"rec-{idx}"
+                    ),
+                    unsafe_allow_html=True
+                )
+            except Exception as e:
+                st.error(f"Error displaying recommendation {idx}: {str(e)}")
             
             if st.button(f"View Details", key=f"details-btn-{idx}", use_container_width=True):
                 movie_title_to_show = row['title']

@@ -209,6 +209,7 @@ class NetflixRecommender:
         
         recommendations = self.df.iloc[similar_indices][available_cols].copy()
         recommendations['similarity_score'] = similarity_scores[similar_indices]
+        recommendations['similarity_score'] = recommendations['similarity_score'].fillna(0)
         recommendations = recommendations.reset_index(drop=True)
         
         return recommendations
@@ -254,6 +255,7 @@ class NetflixRecommender:
         
         recommendations = self.df.iloc[similar_indices][available_cols].copy()
         recommendations['similarity_score'] = [score for _, score in sorted_indices]
+        recommendations['similarity_score'] = recommendations['similarity_score'].fillna(0)
         recommendations = recommendations.reset_index(drop=True)
         
         return recommendations
@@ -306,6 +308,7 @@ class NetflixRecommender:
         
         recommendations = self.df.iloc[similar_indices][available_cols].copy()
         recommendations['similarity_score'] = [score for _, score in sorted_indices]
+        recommendations['similarity_score'] = recommendations['similarity_score'].fillna(0)
         recommendations = recommendations.reset_index(drop=True)
         
         return recommendations
