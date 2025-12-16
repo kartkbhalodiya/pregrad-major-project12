@@ -28,7 +28,12 @@ class NetflixRecommender:
     def load_data(self, data_path):
         """Load and display basic information about the dataset."""
         try:
-            self.df = pd.read_csv(data_path)
+            # Try UTF-8 first, fallback to latin-1 if encoding error
+            try:
+                self.df = pd.read_csv(data_path, encoding='utf-8')
+            except UnicodeDecodeError:
+                self.df = pd.read_csv(data_path, encoding='latin-1')
+            
             print(f"Dataset loaded successfully!")
             print(f"Shape: {self.df.shape}")
             print(f"Columns: {self.df.columns.tolist()}")
@@ -65,10 +70,62 @@ class NetflixRecommender:
         
         print(f"Initial missing values:\n{self.df.isnull().sum()}")
         
-        self.df['listed_in'] = self.df['listed_in'].fillna('Unknown')
-        self.df['cast'] = self.df['cast'].fillna('Unknown')
-        self.df['director'] = self.df['director'].fillna('Unknown')
-        self.df['description'] = self.df['description'].fillna('Unknown')
+        # Handle different column names based on dataset
+        if 'Genre' in self.df.columns:
+            self.df['listed_in'] = self.df['Genre'].fillna('Unknown')
+        elif 'listed_in' not in self.df.columns:
+            self.df['listed_in'] = 'Unknown'
+        else:
+            self.df['listed_in'] = self.df['listed_in'].fillna('Unknown')
+        
+        if 'Actors' in self.df.columns:
+            self.df['cast'] = self.df['Actors'].fillna('Unknown')
+        elif 'cast' not in self.df.columns:
+            self.df['cast'] = 'Unknown'
+        else:
+            self.df['cast'] = self.df['cast'].fillna('Unknown')
+        
+        if 'Director' in self.df.columns:
+            self.df['director'] = self.df['Director'].fillna('Unknown')
+        elif 'director' not in self.df.columns:
+            self.df['director'] = 'Unknown'
+        else:
+            self.df['director'] = self.df['director'].fillna('Unknown')
+        
+        if 'Summary' in self.df.columns:
+            self.df['description'] = self.df['Summary'].fillna('Unknown')
+        elif 'description' not in self.df.columns:
+            self.df['description'] = 'Unknown'
+        else:
+            self.df['description'] = self.df['description'].fillna('Unknown')
+        
+        # Handle title
+        if 'Title' in self.df.columns and 'title' not in self.df.columns:
+            self.df['title'] = self.df['Title']
+        elif 'title' not in self.df.columns:
+            self.df['title'] = 'Unknown'
+        
+        # Handle release year
+        if 'Release Date' in self.df.columns and 'release_year' not in self.df.columns:
+            try:
+                self.df['release_year'] = pd.to_datetime(self.df['Release Date'], errors='coerce').dt.year
+                self.df['release_year'] = self.df['release_year'].fillna(2020).astype(int)
+            except:
+                self.df['release_year'] = 2020
+        elif 'release_year' not in self.df.columns:
+            self.df['release_year'] = 2020
+        
+        # Handle type
+        if 'Series or Movie' in self.df.columns and 'type' not in self.df.columns:
+            self.df['type'] = self.df['Series or Movie']
+        elif 'type' not in self.df.columns:
+            self.df['type'] = 'Unknown'
+        
+        # Handle poster URL
+        if 'Image' in self.df.columns and 'poster_url' not in self.df.columns:
+            self.df['poster_url'] = self.df['Image'].fillna('')
+        elif 'poster_url' not in self.df.columns:
+            self.df['poster_url'] = ''
         
         print("\nAfter filling missing values:")
         print(f"Missing values:\n{self.df.isnull().sum()}")
@@ -146,7 +203,11 @@ class NetflixRecommender:
         similarity_scores = self.similarity_matrix[movie_index]
         similar_indices = similarity_scores.argsort()[::-1][1:num_recommendations + 1]
         
-        recommendations = self.df.iloc[similar_indices][['title', 'type', 'listed_in', 'description', 'release_year']].copy()
+        # Use the standardized column names created in preprocessing
+        output_cols = ['title', 'type', 'listed_in', 'description', 'release_year', 'poster_url']
+        available_cols = [col for col in output_cols if col in self.df.columns]
+        
+        recommendations = self.df.iloc[similar_indices][available_cols].copy()
         recommendations['similarity_score'] = similarity_scores[similar_indices]
         recommendations = recommendations.reset_index(drop=True)
         

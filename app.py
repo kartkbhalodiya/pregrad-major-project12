@@ -16,6 +16,13 @@ st.set_page_config(
     menu_items=None
 )
 
+@st.cache_resource
+def load_recommender(path):
+    """Load and cache the recommender model"""
+    recommender = NetflixRecommender(path)
+    recommender.build_model()
+    return recommender
+
 premium_css = """
 <style>
     /* Root variables */
@@ -638,19 +645,28 @@ premium_css = """
     .banner-poster {
         width: 200px;
         height: 100%;
-        object-fit: cover;
         flex-shrink: 0;
         background: linear-gradient(135deg, #e50914, #221f1f);
         display: flex;
         align-items: center;
         justify-content: center;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .banner-poster-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+    
+    .banner-poster-text {
         font-weight: bold;
         color: #ffffff;
         font-size: 0.75em;
         text-align: center;
         padding: 20px;
-        position: relative;
-        overflow: hidden;
     }
     
     .banner-poster::before {
@@ -658,6 +674,11 @@ premium_css = """
         font-size: 4em;
         opacity: 0.3;
         position: absolute;
+        display: none;
+    }
+    
+    .banner-poster:has(img) .banner-poster::before {
+        display: none;
     }
     
     .banner-content {
@@ -753,6 +774,135 @@ premium_css = """
         box-shadow: 0 0 20px rgba(229, 9, 20, 0.5);
         transition: width 1s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
+    
+    /* Movie Details Modal */
+    .details-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.85);
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        pointer-events: auto;
+    }
+    
+    .details-modal-content {
+        background: #1a1a1a;
+        border: 1px solid #e50914;
+        border-radius: 12px;
+        max-width: 900px;
+        max-height: 90vh;
+        overflow-y: auto;
+        padding: 40px;
+        position: relative;
+        box-shadow: 0 10px 50px rgba(229, 9, 20, 0.3);
+    }
+    
+    .details-close-btn {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        background: #e50914;
+        border: none;
+        color: white;
+        font-size: 32px;
+        cursor: pointer;
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+        z-index: 1000001;
+        padding: 0;
+        line-height: 1;
+    }
+    
+    .details-close-btn:hover {
+        background: #ff6b6b;
+        transform: scale(1.15);
+    }
+    
+    .details-close-btn:active {
+        background: #cc0a11;
+    }
+    
+    .details-title {
+        font-size: 28px;
+        color: #e50914;
+        font-weight: 700;
+        margin-bottom: 20px;
+    }
+    
+    .details-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 30px;
+        margin-bottom: 30px;
+    }
+    
+    .details-poster {
+        text-align: center;
+    }
+    
+    .details-poster img {
+        max-width: 100%;
+        height: auto;
+        border-radius: 8px;
+        box-shadow: 0 5px 20px rgba(229, 9, 20, 0.2);
+    }
+    
+    .details-info {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .detail-item {
+        border-bottom: 1px solid #333333;
+        padding-bottom: 12px;
+    }
+    
+    .detail-label {
+        color: #e50914;
+        font-weight: 700;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    
+    .detail-value {
+        color: #e0e0e0;
+        font-size: 14px;
+        margin-top: 5px;
+        line-height: 1.6;
+    }
+    
+    .details-description {
+        margin-top: 30px;
+        padding-top: 30px;
+        border-top: 1px solid #333333;
+    }
+    
+    .details-description-label {
+        color: #e50914;
+        font-weight: 700;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 10px;
+    }
+    
+    .details-description-text {
+        color: #e0e0e0;
+        font-size: 14px;
+        line-height: 1.8;
+    }
 </style>
 """
 
@@ -776,14 +926,16 @@ def get_poster_url(title):
     """Generate placeholder poster URL for export"""
     return f"https://via.placeholder.com/300x450/e50914/ffffff?text=Poster"
 
-def render_movie_card(rank, title, genre, year, description, similarity):
+def render_movie_card(rank, title, genre, year, description, similarity, poster_url='', movie_key=''):
     """Render premium movie banner card with animations"""
     sim_pct = int(similarity * 100)
     
+    poster_content = f'<img src="{poster_url}" alt="{title}" class="banner-poster-img">' if poster_url else f'<div class="banner-poster-text">{title.upper()[:15]}</div>'
+    
     html = f"""
-    <div class="movie-banner">
+    <div class="movie-banner" id="movie-{movie_key}">
         <div class="banner-poster">
-            {title.upper()[:15]}
+            {poster_content}
         </div>
         <div class="banner-content">
             <div>
@@ -808,6 +960,74 @@ def render_movie_card(rank, title, genre, year, description, similarity):
     </div>
     """
     return html
+
+def render_movie_details_modal(movie_data):
+    """Render detailed movie information in a modal format"""
+    
+    html_parts = []
+    
+    poster_img = f'<img src="{movie_data.get("Image", "")}" alt="{movie_data.get("Title", "")}">' if movie_data.get("Image") else '<div style="background: #333; padding: 50px; text-align: center; color: #888;">No Image</div>'
+    
+    html_parts.append(f"""
+    <div class="details-modal">
+        <div class="details-modal-content">
+            <div onclick="window.parent.postMessage({{type: 'close_modal'}}, '*')" class="details-close-btn" title="Close">✕</div>
+            <div class="details-title">{movie_data.get('Title', 'N/A')}</div>
+            
+            <div class="details-grid">
+                <div class="details-poster">
+                    {poster_img}
+                </div>
+                
+                <div class="details-info">
+    """)
+    
+    fields = [
+        ('Series or Movie', 'Type'),
+        ('Genre', 'Genre'),
+        ('Director', 'Director'),
+        ('Actors', 'Cast'),
+        ('View Rating', 'Rating'),
+        ('IMDb Score', 'IMDb Score'),
+        ('Release Date', 'Release Date'),
+        ('Runtime', 'Runtime'),
+        ('Country Availability', 'Country'),
+        ('Production House', 'Production'),
+        ('Awards Received', 'Awards'),
+    ]
+    
+    for csv_col, label in fields:
+        value = movie_data.get(csv_col, 'N/A')
+        if pd.isna(value) or value == '' or value == 'nan':
+            value = 'N/A'
+        if value and value != 'N/A':
+            html_parts.append(f"""
+                    <div class="detail-item">
+                        <div class="detail-label">{label}</div>
+                        <div class="detail-value">{str(value)[:200]}</div>
+                    </div>
+            """)
+    
+    html_parts.append("""
+                </div>
+            </div>
+            
+            <div class="details-description">
+                <div class="details-description-label">Synopsis</div>
+    """)
+    
+    summary = movie_data.get('Summary', 'N/A')
+    if pd.isna(summary) or summary == '' or summary == 'nan':
+        summary = 'No summary available'
+    html_parts.append(f'<div class="details-description-text">{str(summary)}</div>')
+    
+    html_parts.append("""
+            </div>
+        </div>
+    </div>
+    """)
+    
+    return ''.join(html_parts)
 
 def main():
     # Sidebar
@@ -934,8 +1154,7 @@ def main():
         """, unsafe_allow_html=True)
         
         with st.spinner("🔄 Loading AI engine..."):
-            recommender = NetflixRecommender(data_path)
-            recommender.build_model()
+            recommender = load_recommender(data_path)
         
         st.success("✅ AI engine ready!")
         
@@ -957,56 +1176,73 @@ def main():
         if st.button("🔍 Get Recommendations", use_container_width=True, key="get_recs"):
             with st.spinner("🎬 Finding perfect matches..."):
                 recs = recommender.get_recommendations(movie_title, num_recs)
+                st.session_state.recommendations = recs
+                st.session_state.current_movie_title = movie_title
+                st.session_state.current_num_recs = num_recs
             
-            if recs is not None:
-                movie_info = recommender.df[recommender.df['title'] == movie_title].iloc[0]
+        if "recommendations" in st.session_state and st.session_state.recommendations is not None:
+            recs = st.session_state.recommendations
+            movie_title = st.session_state.current_movie_title
+            num_recs = st.session_state.current_num_recs
+            
+            movie_info = recommender.df[recommender.df['title'] == movie_title].iloc[0]
+            
+            st.markdown(f"### You selected: **{movie_title}**")
+            st.caption(f"🎬 {movie_info['listed_in']} • 📅 {movie_info['release_year']}")
+            st.markdown("---")
+            
+            st.markdown(f"### 🏆 Top {num_recs} Matches")
+            
+            for idx, (_, row) in enumerate(recs.iterrows(), 1):
+                st.markdown(
+                    render_movie_card(
+                        idx,
+                        row['title'],
+                        row['listed_in'],
+                        row['release_year'],
+                        row['description'],
+                        row['similarity_score'],
+                        row.get('poster_url', ''),
+                        f"rec-{idx}"
+                    ),
+                    unsafe_allow_html=True
+                )
                 
-                st.markdown(f"### You selected: **{movie_title}**")
-                st.caption(f"🎬 {movie_info['listed_in']} • 📅 {movie_info['release_year']}")
-                st.markdown("---")
-                
-                st.markdown(f"### 🏆 Top {num_recs} Matches")
-                
-                for idx, (_, row) in enumerate(recs.iterrows(), 1):
-                    st.markdown(
-                        render_movie_card(
-                            idx,
-                            row['title'],
-                            row['listed_in'],
-                            row['release_year'],
-                            row['description'],
-                            row['similarity_score']
-                        ),
-                        unsafe_allow_html=True
-                    )
-                
-                st.markdown("---")
-                
-                col1, col2 = st.columns([2, 1])
-                with col1:
-                    st.markdown("### 📥 Export Recommendations")
-                with col2:
-                    if st.button("💾 Download as Excel", use_container_width=True):
-                        export_df = recs.copy()
-                        export_df['poster_url'] = export_df['title'].apply(get_poster_url)
-                        export_df['match_rank'] = range(1, len(export_df) + 1)
-                        export_df['similarity_percentage'] = (export_df['similarity_score'] * 100).astype(int).astype(str) + '%'
-                        
-                        cols_to_export = ['match_rank', 'title', 'type', 'listed_in', 'release_year', 'similarity_percentage', 'poster_url', 'description']
-                        export_df_final = export_df[[col for col in cols_to_export if col in export_df.columns]]
-                        
-                        with pd.ExcelWriter('recommendations_export.xlsx', engine='openpyxl') as writer:
-                            export_df_final.to_excel(writer, sheet_name='Recommendations', index=False)
-                        
-                        with open('recommendations_export.xlsx', 'rb') as f:
-                            st.download_button(
-                                label="✅ Click to download",
-                                data=f.read(),
-                                file_name=f"netflix_recommendations_{movie_title.replace(' ', '_')}.xlsx",
-                                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                            )
-            else:
-                st.error("❌ Show not found")
+                if st.button(f"View Details", key=f"details-btn-{idx}", use_container_width=True):
+                    movie_title_to_show = row['title']
+                    movie_row = recommender.df[recommender.df['title'] == movie_title_to_show]
+                    if len(movie_row) > 0:
+                        st.session_state.selected_movie = movie_row.iloc[0].to_dict()
+                        st.session_state.show_modal = True
+                        st.rerun()
+            
+            st.markdown("---")
+            
+            col1, col2 = st.columns([2, 1])
+            with col1:
+                st.markdown("### 📥 Export Recommendations")
+            with col2:
+                if st.button("💾 Download as Excel", use_container_width=True):
+                    export_df = recs.copy()
+                    export_df['poster_url'] = export_df['title'].apply(get_poster_url)
+                    export_df['match_rank'] = range(1, len(export_df) + 1)
+                    export_df['similarity_percentage'] = (export_df['similarity_score'] * 100).astype(int).astype(str) + '%'
+                    
+                    cols_to_export = ['match_rank', 'title', 'type', 'listed_in', 'release_year', 'similarity_percentage', 'poster_url', 'description']
+                    export_df_final = export_df[[col for col in cols_to_export if col in export_df.columns]]
+                    
+                    with pd.ExcelWriter('recommendations_export.xlsx', engine='openpyxl') as writer:
+                        export_df_final.to_excel(writer, sheet_name='Recommendations', index=False)
+                    
+                    with open('recommendations_export.xlsx', 'rb') as f:
+                        st.download_button(
+                            label="✅ Click to download",
+                            data=f.read(),
+                            file_name=f"netflix_recommendations_{movie_title.replace(' ', '_')}.xlsx",
+                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                        )
+        elif "recommendations" in st.session_state and st.session_state.recommendations is None:
+            st.error("❌ Show not found")
     
     elif current_page == "📊 Analytics":
         st.markdown("""
@@ -1016,17 +1252,17 @@ def main():
         </div>
         """, unsafe_allow_html=True)
         
-        df = pd.read_csv(data_path)
+        df = pd.read_csv(data_path, encoding='latin-1')
         
         col1, col2, col3, col4 = st.columns(4)
         with col1:
             st.metric("📚 Total Content", len(df))
         with col2:
-            st.metric("🎬 Movies", len(df[df['type'] == 'Movie']))
+            st.metric("🎬 Movies", len(df[df['Series or Movie'] == 'Movie']))
         with col3:
-            st.metric("📺 TV Shows", len(df[df['type'] == 'TV Show']))
+            st.metric("📺 TV Shows", len(df[df['Series or Movie'] == 'Series']))
         with col4:
-            genres_count = len(set(df['listed_in'].str.split(',').explode().str.strip()))
+            genres_count = len(set(df['Genre'].str.split(',').explode().str.strip()))
             st.metric("🎭 Genres", genres_count)
         
         st.markdown("---")
@@ -1035,7 +1271,7 @@ def main():
         
         with tab1:
             st.markdown("### Top 12 Genres")
-            genres = df['listed_in'].str.split(',').explode().str.strip()
+            genres = df['Genre'].str.split(',').explode().str.strip()
             genre_counts = genres.value_counts().head(12)
             fig, ax = plt.subplots(figsize=(12, 6))
             ax.barh(genre_counts.index, genre_counts.values, color='#e50914', alpha=0.85)
@@ -1050,7 +1286,7 @@ def main():
         
         with tab2:
             st.markdown("### Content Distribution")
-            types = df['type'].value_counts()
+            types = df['Series or Movie'].value_counts()
             fig, ax = plt.subplots(figsize=(8, 6))
             colors = ['#e50914', '#666666']
             ax.pie(types, labels=types.index, autopct='%1.0f%%',
@@ -1061,7 +1297,7 @@ def main():
         
         with tab3:
             st.markdown("### Release Year Trends")
-            years = df['release_year'].value_counts().sort_index()
+            years = pd.to_datetime(df['Release Date'], errors='coerce').dt.year.value_counts().sort_index()
             fig, ax = plt.subplots(figsize=(12, 5))
             ax.plot(years.index, years.values, color='#e50914', linewidth=3, marker='o', markersize=7)
             ax.fill_between(years.index, years.values, alpha=0.25, color='#e50914')
@@ -1169,6 +1405,18 @@ def main():
             </p>
         </div>
         """, unsafe_allow_html=True)
+    
+    if "show_modal" not in st.session_state:
+        st.session_state.show_modal = False
+    
+    if st.session_state.show_modal and "selected_movie" in st.session_state:
+        modal_html = render_movie_details_modal(st.session_state.selected_movie)
+        st.html(modal_html)
+        
+        if st.button("✕ Close", use_container_width=True, key="close_modal_btn", help="Close the modal"):
+            st.session_state.show_modal = False
+            st.session_state.selected_movie = None
+            st.rerun()
 
 if __name__ == "__main__":
     main()
