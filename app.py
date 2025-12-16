@@ -913,6 +913,459 @@ PREMIUM_CSS = """
         font-size: 14px;
         line-height: 1.8;
     }
+    
+    /* ==================== RESPONSIVE DESIGN ==================== */
+    /* Tablet screens (768px - 1024px) */
+    @media (max-width: 1024px) {
+        .main-title {
+            font-size: 2.5em;
+        }
+        
+        .header-section {
+            padding: 40px 20px;
+            margin: 0 -20px 30px -20px;
+        }
+        
+        .main-content {
+            padding: 0 20px 20px 20px;
+        }
+        
+        .movie-banner {
+            height: auto;
+            flex-direction: column;
+        }
+        
+        .banner-poster {
+            width: 100%;
+            height: 250px;
+        }
+        
+        .banner-content {
+            padding: 20px;
+        }
+        
+        .banner-title {
+            font-size: 1.5em;
+        }
+    }
+    
+    /* Mobile screens (max 768px) */
+    @media (max-width: 768px) {
+        /* Global adjustments */
+        body, .stApp, [data-testid="stAppViewContainer"] {
+            font-size: 14px;
+        }
+        
+        /* Hide sidebar on mobile and show as overlay menu */
+        [data-testid="stSidebar"] {
+            width: 80% !important;
+            z-index: 999;
+        }
+        
+        /* Header section */
+        .header-section {
+            padding: 30px 15px;
+            margin: 0 -15px 20px -15px;
+        }
+        
+        .main-title {
+            font-size: 1.8em;
+            line-height: 1.2;
+            margin: 0 0 15px 0;
+        }
+        
+        .tagline {
+            font-size: 0.9em;
+        }
+        
+        /* Main content */
+        .main-content {
+            padding: 0 15px 20px 15px;
+        }
+        
+        /* Movie banner */
+        .movie-banner {
+            height: auto;
+            flex-direction: column;
+            margin: 15px 0;
+        }
+        
+        .banner-poster {
+            width: 100%;
+            height: 200px;
+        }
+        
+        .banner-content {
+            padding: 15px;
+            background: linear-gradient(180deg, rgba(34, 31, 31, 0.6) 0%, transparent 100%);
+        }
+        
+        .banner-title {
+            font-size: 1.2em;
+            margin: 8px 0;
+        }
+        
+        .banner-rank {
+            padding: 6px 12px;
+            font-size: 0.75em;
+        }
+        
+        .banner-meta {
+            font-size: 0.85em;
+        }
+        
+        .banner-description {
+            font-size: 0.8em;
+            margin: 10px 0;
+        }
+        
+        .banner-footer {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 10px;
+        }
+        
+        .banner-similarity-bar {
+            width: 100%;
+        }
+        
+        /* Premium card */
+        .premium-card {
+            padding: 20px;
+            margin: 15px 0;
+        }
+        
+        /* Movie card */
+        .movie-card {
+            padding: 20px;
+            margin: 15px 0;
+        }
+        
+        .movie-title {
+            font-size: 1.2em;
+        }
+        
+        /* Sidebar styling */
+        .sidebar-header {
+            padding: 20px 15px 15px;
+        }
+        
+        .sidebar-title {
+            font-size: 1.3em;
+        }
+        
+        /* Navigation */
+        .nav-section {
+            padding: 15px 10px;
+        }
+        
+        .nav-label {
+            font-size: 0.75em;
+            margin-bottom: 10px;
+        }
+        
+        .stRadio > div > label {
+            padding: 10px 12px;
+            margin: 4px 0;
+            font-size: 0.9em;
+        }
+        
+        /* Buttons */
+        .stButton > button {
+            padding: 12px 24px;
+            font-size: 0.9em;
+            width: 100%;
+        }
+        
+        /* Input elements */
+        .stSelectbox > div > div {
+            font-size: 0.9em !important;
+        }
+        
+        /* Headers */
+        h1 {
+            font-size: 1.8em;
+            margin: 20px 0 15px 0;
+        }
+        
+        h2 {
+            font-size: 1.5em;
+            margin: 15px 0 12px 0;
+        }
+        
+        h3 {
+            font-size: 1.2em;
+            margin: 12px 0 10px 0;
+        }
+        
+        /* Details modal */
+        .details-modal-content {
+            max-width: 95vw;
+            max-height: 95vh;
+            padding: 20px;
+            border-radius: 12px;
+        }
+        
+        .details-grid {
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+        
+        .details-title {
+            font-size: 1.5em;
+            margin-bottom: 15px;
+        }
+        
+        .detail-label {
+            font-size: 11px;
+        }
+        
+        .detail-value {
+            font-size: 13px;
+        }
+        
+        /* Tabs */
+        .stTabs [data-baseweb="tab-list"] button {
+            padding: 10px 15px !important;
+            font-size: 0.9em !important;
+        }
+        
+        /* Metrics */
+        [data-testid="metric-container"] {
+            padding: 15px !important;
+        }
+        
+        /* Text */
+        p {
+            font-size: 0.95em;
+        }
+        
+        /* Columns layout */
+        .stColumns > div > div {
+            margin-bottom: 15px;
+        }
+        
+        /* Expander */
+        .streamlit-expanderHeader {
+            padding: 12px;
+        }
+        
+        /* Netflix loader */
+        .netflix-logo-loader {
+            font-size: 80px;
+            letter-spacing: 2px;
+        }
+        
+        .loader-spinner {
+            width: 50px;
+            height: 50px;
+        }
+        
+        .loader-text {
+            font-size: 14px;
+        }
+    }
+    
+    /* Small mobile screens (max 480px) */
+    @media (max-width: 480px) {
+        .main-title {
+            font-size: 1.5em;
+        }
+        
+        .header-section {
+            padding: 20px 12px;
+            margin: 0 -12px 15px -12px;
+        }
+        
+        .main-content {
+            padding: 0 12px 15px 12px;
+        }
+        
+        .banner-poster {
+            height: 160px;
+        }
+        
+        .banner-title {
+            font-size: 1.1em;
+        }
+        
+        .banner-description {
+            display: none;
+        }
+        
+        h1 {
+            font-size: 1.5em;
+        }
+        
+        h2 {
+            font-size: 1.3em;
+        }
+        
+        .sidebar-title {
+            font-size: 1.1em;
+        }
+        
+        .details-modal-content {
+            padding: 15px;
+        }
+        
+        .details-close-btn {
+            width: 40px;
+            height: 40px;
+            font-size: 24px;
+        }
+    }
+    
+    /* ==================== TOUCH SCREEN OPTIMIZATION ==================== */
+    /* Increase touch target sizes for mobile */
+    @media (hover: none) and (pointer: coarse) {
+        .stButton > button {
+            min-height: 48px;
+            padding: 14px 24px;
+        }
+        
+        .stRadio > div > label {
+            min-height: 44px;
+            padding: 12px 15px;
+        }
+        
+        .stSelectbox > div > div {
+            min-height: 44px;
+        }
+        
+        .stSlider > div > div {
+            min-height: 48px;
+        }
+        
+        .stCheckbox > div > label {
+            min-height: 44px;
+            padding: 12px 0;
+        }
+    }
+    
+    /* ==================== RESPONSIVE CONTAINER LAYOUT ==================== */
+    /* Make columns responsive */
+    @media (max-width: 1024px) {
+        [data-testid="column"] {
+            min-width: 100%;
+        }
+    }
+    
+    /* Adjust expander width on mobile */
+    @media (max-width: 768px) {
+        [data-testid="stExpander"] {
+            width: 100%;
+        }
+        
+        .streamlit-expanderHeader {
+            font-size: 0.95em;
+        }
+    }
+    
+    /* ==================== OPTIMIZED SCROLLBAR FOR MOBILE ==================== */
+    @media (max-width: 768px) {
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: rgba(229, 9, 20, 0.6);
+        }
+    }
+    
+    /* ==================== FORM ELEMENTS OPTIMIZATION ==================== */
+    /* Text input */
+    .stTextInput > div > div > input {
+        font-size: 16px !important;
+        min-height: 44px;
+    }
+    
+    /* Number input */
+    .stNumberInput > div > div > input {
+        font-size: 16px !important;
+        min-height: 44px;
+    }
+    
+    /* Text area */
+    .stTextArea > div > div > textarea {
+        font-size: 16px !important;
+        min-height: 100px;
+    }
+    
+    /* Selectbox */
+    .stSelectbox {
+        width: 100%;
+    }
+    
+    /* File uploader */
+    .stFileUploader {
+        width: 100%;
+    }
+    
+    .stFileUploader > div > div {
+        min-height: 44px;
+    }
+    
+    /* Mobile-specific input optimization */
+    @media (max-width: 768px) {
+        .stTextInput > div > div > input,
+        .stNumberInput > div > div > input,
+        .stTextArea > div > div > textarea {
+            font-size: 16px !important;
+            padding: 12px !important;
+        }
+        
+        .stSelectbox > div > div {
+            padding: 12px !important;
+            font-size: 16px !important;
+        }
+        
+        [data-testid="stFileUploadDropzone"] {
+            min-height: 100px;
+            padding: 20px !important;
+        }
+    }
+    
+    /* ==================== RESPONSIVE DATA DISPLAY ==================== */
+    /* Make dataframes scrollable on mobile */
+    @media (max-width: 768px) {
+        [data-testid="stDataFrame"] {
+            overflow-x: auto;
+            font-size: 0.85em;
+        }
+        
+        .stDataFrame table {
+            width: 100%;
+        }
+    }
+    
+    /* ==================== RESPONSIVE IMAGES ==================== */
+    img {
+        max-width: 100%;
+        height: auto;
+    }
+    
+    /* ==================== RESPONSIVE VIDEO ==================== */
+    iframe {
+        max-width: 100%;
+        height: auto;
+    }
+    
+    /* ==================== RESPONSIVE ALERT MESSAGES ==================== */
+    @media (max-width: 768px) {
+        .stAlert {
+            padding: 12px 15px !important;
+            font-size: 0.9em;
+        }
+    }
+    
+    /* ==================== RESPONSIVE METRIC CARDS ==================== */
+    @media (max-width: 768px) {
+        [data-testid="metric-container"] {
+            padding: 12px !important;
+            margin-bottom: 12px;
+        }
+    }
 </style>
 """
 
