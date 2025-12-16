@@ -213,6 +213,117 @@ class NetflixRecommender:
         
         return recommendations
     
+    def get_recommendations_by_tag(self, tag, num_recommendations=10):
+        """
+        Get top N recommendations for a given tag/genre.
+        
+        Args:
+            tag (str): Genre/tag to get recommendations for
+            num_recommendations (int): Number of recommendations to return
+            
+        Returns:
+            pd.DataFrame: DataFrame with recommended movies matching the tag
+        """
+        if self.similarity_matrix is None:
+            print("Error: Similarity matrix not computed. Run compute_similarity() first.")
+            return None
+        
+        movies_with_tag = self.df[self.df['listed_in'].str.contains(tag, case=False, na=False)]
+        
+        if len(movies_with_tag) == 0:
+            print(f"No movies found with tag '{tag}'")
+            return None
+        
+        movies_with_tag_indices = movies_with_tag.index.tolist()
+        
+        similarity_scores_dict = {}
+        for idx in movies_with_tag_indices:
+            similarity_scores = self.similarity_matrix[idx]
+            similar_indices = similarity_scores.argsort()[::-1][1:num_recommendations + 1]
+            for sim_idx in similar_indices:
+                if sim_idx not in similarity_scores_dict:
+                    similarity_scores_dict[sim_idx] = similarity_scores[sim_idx]
+                else:
+                    similarity_scores_dict[sim_idx] = max(similarity_scores_dict[sim_idx], similarity_scores[sim_idx])
+        
+        sorted_indices = sorted(similarity_scores_dict.items(), key=lambda x: x[1], reverse=True)[:num_recommendations]
+        similar_indices = [idx for idx, _ in sorted_indices]
+        
+        output_cols = ['title', 'type', 'listed_in', 'description', 'release_year', 'poster_url']
+        available_cols = [col for col in output_cols if col in self.df.columns]
+        
+        recommendations = self.df.iloc[similar_indices][available_cols].copy()
+        recommendations['similarity_score'] = [score for _, score in sorted_indices]
+        recommendations = recommendations.reset_index(drop=True)
+        
+        return recommendations
+    
+    def get_recommendations_by_multiple_tags(self, tags_list, num_recommendations=10):
+        """
+        Get top N recommendations for multiple tags/genres.
+        
+        Args:
+            tags_list (list): List of genres/tags to get recommendations for
+            num_recommendations (int): Number of recommendations to return
+            
+        Returns:
+            pd.DataFrame: DataFrame with recommended movies matching any of the tags
+        """
+        if self.similarity_matrix is None:
+            print("Error: Similarity matrix not computed. Run compute_similarity() first.")
+            return None
+        
+        if not tags_list or len(tags_list) == 0:
+            print("Error: No tags provided")
+            return None
+        
+        all_movies_with_tags = pd.DataFrame()
+        for tag in tags_list:
+            movies_with_tag = self.df[self.df['listed_in'].str.contains(tag, case=False, na=False)]
+            all_movies_with_tags = pd.concat([all_movies_with_tags, movies_with_tag]).drop_duplicates()
+        
+        if len(all_movies_with_tags) == 0:
+            print(f"No movies found with tags {tags_list}")
+            return None
+        
+        movies_with_tags_indices = all_movies_with_tags.index.tolist()
+        
+        similarity_scores_dict = {}
+        for idx in movies_with_tags_indices:
+            similarity_scores = self.similarity_matrix[idx]
+            similar_indices = similarity_scores.argsort()[::-1][1:num_recommendations + 1]
+            for sim_idx in similar_indices:
+                if sim_idx not in similarity_scores_dict:
+                    similarity_scores_dict[sim_idx] = similarity_scores[sim_idx]
+                else:
+                    similarity_scores_dict[sim_idx] = max(similarity_scores_dict[sim_idx], similarity_scores[sim_idx])
+        
+        sorted_indices = sorted(similarity_scores_dict.items(), key=lambda x: x[1], reverse=True)[:num_recommendations]
+        similar_indices = [idx for idx, _ in sorted_indices]
+        
+        output_cols = ['title', 'type', 'listed_in', 'description', 'release_year', 'poster_url']
+        available_cols = [col for col in output_cols if col in self.df.columns]
+        
+        recommendations = self.df.iloc[similar_indices][available_cols].copy()
+        recommendations['similarity_score'] = [score for _, score in sorted_indices]
+        recommendations = recommendations.reset_index(drop=True)
+        
+        return recommendations
+    
+    def get_all_tags(self):
+        """
+        Get all unique tags/genres from the dataset.
+        
+        Returns:
+            list: Sorted list of unique tags
+        """
+        all_tags = set()
+        for tags_str in self.df['listed_in'].dropna():
+            tags = [tag.strip() for tag in str(tags_str).split(',')]
+            all_tags.update(tags)
+        
+        return sorted(list(all_tags))
+    
     def evaluate_recommendations(self, test_title, num_recommendations=5):
         """
         Evaluate and display recommendations for a given title.

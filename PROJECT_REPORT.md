@@ -652,7 +652,7 @@ netflix-recommendation-system/
 ├── app.py                             # Streamlit web application
 │
 ├── data/
-│   └── netflix_sample.csv             # Dataset (500+ records)
+│   └── netflix_sample.csv             # Dataset (7000+ records)
 │
 ├── src/
 │   ├── recommendation_engine.py       # Core engine (200+ lines)

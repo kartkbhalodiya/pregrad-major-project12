@@ -16,6 +16,7 @@ st.set_page_config(
     menu_items=None
 )
 
+
 @st.cache_resource
 def load_recommender(path):
     """Load and cache the recommender model"""
@@ -23,7 +24,8 @@ def load_recommender(path):
     recommender.build_model()
     return recommender
 
-premium_css = """
+
+PREMIUM_CSS = """
 <style>
     /* Root variables */
     :root {
@@ -832,6 +834,14 @@ premium_css = """
         background: #cc0a11;
     }
     
+    .details-dialog-content {
+        background: #1a1a1a;
+        border: 1px solid #e50914;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 10px 50px rgba(229, 9, 20, 0.3);
+    }
+    
     .details-title {
         font-size: 28px;
         color: #e50914;
@@ -906,9 +916,7 @@ premium_css = """
 </style>
 """
 
-st.markdown(premium_css, unsafe_allow_html=True)
-
-loader_html = """
+LOADER_HTML = """
 <div class="netflix-loader-overlay">
     <div class="loader-content">
         <div class="netflix-logo-loader">NETFLIX</div>
@@ -920,11 +928,15 @@ loader_html = """
 </div>
 """
 
-st.markdown(loader_html, unsafe_allow_html=True)
+
+st.markdown(PREMIUM_CSS, unsafe_allow_html=True)
+st.markdown(LOADER_HTML, unsafe_allow_html=True)
+
 
 def get_poster_url(title):
     """Generate placeholder poster URL for export"""
     return f"https://via.placeholder.com/300x450/e50914/ffffff?text=Poster"
+
 
 def render_movie_card(rank, title, genre, year, description, similarity, poster_url='', movie_key=''):
     """Render premium movie banner card with animations"""
@@ -961,25 +973,23 @@ def render_movie_card(rank, title, genre, year, description, similarity, poster_
     """
     return html
 
-def render_movie_details_modal(movie_data):
-    """Render detailed movie information in a modal format"""
+def get_movie_details_html(movie_data):
+    """Generate HTML for movie details"""
     
     html_parts = []
     
     poster_img = f'<img src="{movie_data.get("Image", "")}" alt="{movie_data.get("Title", "")}">' if movie_data.get("Image") else '<div style="background: #333; padding: 50px; text-align: center; color: #888;">No Image</div>'
     
     html_parts.append(f"""
-    <div class="details-modal">
-        <div class="details-modal-content">
-            <div onclick="window.parent.postMessage({{type: 'close_modal'}}, '*')" class="details-close-btn" title="Close">✕</div>
-            <div class="details-title">{movie_data.get('Title', 'N/A')}</div>
+    <div class="details-dialog-content">
+        <div class="details-title">{movie_data.get('Title', 'N/A')}</div>
+        
+        <div class="details-grid">
+            <div class="details-poster">
+                {poster_img}
+            </div>
             
-            <div class="details-grid">
-                <div class="details-poster">
-                    {poster_img}
-                </div>
-                
-                <div class="details-info">
+            <div class="details-info">
     """)
     
     fields = [
@@ -1023,14 +1033,18 @@ def render_movie_details_modal(movie_data):
     
     html_parts.append("""
             </div>
-        </div>
     </div>
     """)
     
     return ''.join(html_parts)
 
-def main():
-    # Sidebar
+@st.dialog("Movie Details")
+def show_movie_details_dialog(movie_data):
+    st.html(get_movie_details_html(movie_data))
+
+
+def render_sidebar():
+    """Render sidebar with navigation and metrics"""
     with st.sidebar:
         st.markdown("""
         <div class="sidebar-header">
@@ -1050,7 +1064,6 @@ def main():
         )
         
         st.markdown("</div>", unsafe_allow_html=True)
-        
         st.markdown("<hr>", unsafe_allow_html=True)
         
         st.markdown("<div class='nav-section'>", unsafe_allow_html=True)
@@ -1070,219 +1083,257 @@ def main():
             st.metric("Genres", "20+")
         st.markdown("</div>", unsafe_allow_html=True)
     
-    if "page" not in st.session_state:
-        st.session_state.page = page
-    else:
-        st.session_state.page = page
+    return page
+
+
+def render_home_page():
+    """Render home page"""
+    st.markdown("""
+    <div class="header-section">
+        <div class="main-title">Discover <span class="title-accent">Your</span> Next <span class="title-accent">Favorite</span></div>
+        <p class="tagline">AI-Powered Recommendations | Find Shows You'll Love</p>
+    </div>
+    """, unsafe_allow_html=True)
     
-    data_path = os.path.join(os.path.dirname(__file__), 'data', 'netflix_sample.csv')
-    current_page = st.session_state.page
+    col1, col2 = st.columns([1.3, 1])
     
-    if current_page == "🏠 Home":
+    with col1:
         st.markdown("""
-        <div class="header-section">
-            <div class="main-title">Discover <span class="title-accent">Your</span> Next <span class="title-accent">Favorite</span></div>
-            <p class="tagline">AI-Powered Recommendations | Find Shows You'll Love</p>
+        <div class="premium-card">
+        <h3>How It Works</h3>
+        <p style="color: #cccccc; line-height: 1.8;">
+        Our AI analyzes thousands of shows to find perfect matches for you.
+        </p>
+        <ul style="color: #cccccc; margin-left: 20px;">
+            <li style="margin: 10px 0;"><strong>🎬 Analyzes</strong> genres, cast, themes</li>
+            <li style="margin: 10px 0;"><strong>🔍 Learns</strong> your preferences</li>
+            <li style="margin: 10px 0;"><strong>⚡ Recommends</strong> instant matches</li>
+            <li style="margin: 10px 0;"><strong>🎯 Scores</strong> similarity accuracy</li>
+        </ul>
         </div>
         """, unsafe_allow_html=True)
-        
-        col1, col2 = st.columns([1.3, 1])
-        
-        with col1:
-            st.markdown("""
-            <div class="premium-card">
-            <h3>How It Works</h3>
-            <p style="color: #cccccc; line-height: 1.8;">
-            Our AI analyzes thousands of shows to find perfect matches for you.
-            </p>
-            <ul style="color: #cccccc; margin-left: 20px;">
-                <li style="margin: 10px 0;"><strong>🎬 Analyzes</strong> genres, cast, themes</li>
-                <li style="margin: 10px 0;"><strong>🔍 Learns</strong> your preferences</li>
-                <li style="margin: 10px 0;"><strong>⚡ Recommends</strong> instant matches</li>
-                <li style="margin: 10px 0;"><strong>🎯 Scores</strong> similarity accuracy</li>
-            </ul>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        with col2:
-            st.markdown("""
-            <div class="premium-card">
-            <h3>Quick Stats</h3>
-            """, unsafe_allow_html=True)
-            col_a, col_b = st.columns(2)
-            with col_a:
-                st.metric("🎬 Content", "500+")
-                st.metric("⚡ Speed", "<1s")
-            with col_b:
-                st.metric("🎭 Genres", "20+")
-                st.metric("🎯 Accuracy", "95%")
-            st.markdown("</div>", unsafe_allow_html=True)
-        
-        st.markdown("---")
-        
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.markdown("""
-            <div class="premium-card">
-            <h4>🚀 Get Started</h4>
-            <p style="color: #cccccc; font-size: 0.95em;">Go to Discover, pick your favorite show, and get instant recommendations.</p>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        with col2:
-            st.markdown("""
-            <div class="premium-card">
-            <h4>📊 Explore Data</h4>
-            <p style="color: #cccccc; font-size: 0.95em;">Check Analytics to see genre trends, top shows, and dataset insights.</p>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        with col3:
-            st.markdown("""
-            <div class="premium-card">
-            <h4>📚 Learn More</h4>
-            <p style="color: #cccccc; font-size: 0.95em;">Visit About to understand how our algorithm works and the tech behind it.</p>
-            </div>
-            """, unsafe_allow_html=True)
     
-    elif current_page == "🎯 Discover":
+    with col2:
         st.markdown("""
-        <div class="header-section">
-            <div class="main-title">Find <span class="title-accent">Perfect</span> Matches</div>
-            <p class="tagline">Search any show and get instant AI recommendations</p>
+        <div class="premium-card">
+        <h3>Quick Stats</h3>
+        """, unsafe_allow_html=True)
+        col_a, col_b = st.columns(2)
+        with col_a:
+            st.metric("🎬 Content", "500+")
+            st.metric("⚡ Speed", "<1s")
+        with col_b:
+            st.metric("🎭 Genres", "20+")
+            st.metric("🎯 Accuracy", "95%")
+        st.markdown("</div>", unsafe_allow_html=True)
+    
+    st.markdown("---")
+    
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.markdown("""
+        <div class="premium-card">
+        <h4>🚀 Get Started</h4>
+        <p style="color: #cccccc; font-size: 0.95em;">Go to Discover, pick your favorite show, and get instant recommendations.</p>
         </div>
         """, unsafe_allow_html=True)
-        
-        with st.spinner("🔄 Loading AI engine..."):
-            recommender = load_recommender(data_path)
-        
-        st.success("✅ AI engine ready!")
-        
-        col1, col2 = st.columns([2.5, 1.2])
-        
-        with col1:
-            movie_title = st.selectbox(
+    
+    with col2:
+        st.markdown("""
+        <div class="premium-card">
+        <h4>📊 Explore Data</h4>
+        <p style="color: #cccccc; font-size: 0.95em;">Check Analytics to see genre trends, top shows, and dataset insights.</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col3:
+        st.markdown("""
+        <div class="premium-card">
+        <h4>📚 Learn More</h4>
+        <p style="color: #cccccc; font-size: 0.95em;">Visit About to understand how our algorithm works and the tech behind it.</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+
+def render_discover_page(data_path):
+    """Render discover page with recommendations"""
+    st.markdown("""
+    <div class="header-section">
+        <div class="main-title">Find <span class="title-accent">Perfect</span> Matches</div>
+        <p class="tagline">Search any show and get instant AI recommendations</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    with st.spinner("🔄 Loading AI engine..."):
+        recommender = load_recommender(data_path)
+    
+    st.success("✅ AI engine ready!")
+    
+    search_mode = st.radio(
+        "Search by:",
+        ["🎬 Title", "🏷️ Genre/Tag"],
+        horizontal=True,
+        label_visibility="collapsed",
+        key="search_mode"
+    )
+    
+    st.markdown("")
+    
+    col1, col2 = st.columns([2.5, 1.2])
+    
+    with col1:
+        if search_mode == "🎬 Title":
+            search_input = st.selectbox(
                 "Search for a show:",
                 recommender.df['title'].unique(),
                 label_visibility="collapsed",
                 key="search"
             )
-        
-        with col2:
-            num_recs = st.slider("Results", 1, 15, 5, label_visibility="collapsed", key="slider")
-        
-        st.markdown("")
-        
-        if st.button("🔍 Get Recommendations", use_container_width=True, key="get_recs"):
+        else:
+            available_tags = recommender.get_all_tags()
+            search_input = st.multiselect(
+                "Select genres or tags:",
+                available_tags,
+                label_visibility="collapsed",
+                key="search_tag",
+                placeholder="Choose one or more genres..."
+            )
+    
+    with col2:
+        num_recs = st.slider("Results", 1, 15, 5, label_visibility="collapsed", key="slider")
+    
+    st.markdown("")
+    
+    if st.button("🔍 Get Recommendations", use_container_width=True, key="get_recs"):
+        if search_mode == "🏷️ Genre/Tag" and (not search_input or len(search_input) == 0):
+            st.error("❌ Please select at least one genre or tag")
+        else:
             with st.spinner("🎬 Finding perfect matches..."):
-                recs = recommender.get_recommendations(movie_title, num_recs)
+                if search_mode == "🎬 Title":
+                    recs = recommender.get_recommendations(search_input, num_recs)
+                    st.session_state.current_search_type = "title"
+                else:
+                    recs = recommender.get_recommendations_by_multiple_tags(search_input, num_recs)
+                    st.session_state.current_search_type = "tag"
+                
                 st.session_state.recommendations = recs
-                st.session_state.current_movie_title = movie_title
+                st.session_state.current_movie_title = search_input
                 st.session_state.current_num_recs = num_recs
-            
-        if "recommendations" in st.session_state and st.session_state.recommendations is not None:
-            recs = st.session_state.recommendations
-            movie_title = st.session_state.current_movie_title
-            num_recs = st.session_state.current_num_recs
-            
+    
+    if "recommendations" in st.session_state and st.session_state.recommendations is not None:
+        recs = st.session_state.recommendations
+        movie_title = st.session_state.current_movie_title
+        num_recs = st.session_state.current_num_recs
+        search_type = st.session_state.get("current_search_type", "title")
+        
+        if search_type == "title":
             movie_info = recommender.df[recommender.df['title'] == movie_title].iloc[0]
-            
             st.markdown(f"### You selected: **{movie_title}**")
             st.caption(f"🎬 {movie_info['listed_in']} • 📅 {movie_info['release_year']}")
-            st.markdown("---")
-            
-            st.markdown(f"### 🏆 Top {num_recs} Matches")
-            
-            for idx, (_, row) in enumerate(recs.iterrows(), 1):
-                st.markdown(
-                    render_movie_card(
-                        idx,
-                        row['title'],
-                        row['listed_in'],
-                        row['release_year'],
-                        row['description'],
-                        row['similarity_score'],
-                        row.get('poster_url', ''),
-                        f"rec-{idx}"
-                    ),
-                    unsafe_allow_html=True
-                )
-                
-                if st.button(f"View Details", key=f"details-btn-{idx}", use_container_width=True):
-                    movie_title_to_show = row['title']
-                    movie_row = recommender.df[recommender.df['title'] == movie_title_to_show]
-                    if len(movie_row) > 0:
-                        st.session_state.selected_movie = movie_row.iloc[0].to_dict()
-                        st.session_state.show_modal = True
-                        st.rerun()
-            
-            st.markdown("---")
-            
-            col1, col2 = st.columns([2, 1])
-            with col1:
-                st.markdown("### 📥 Export Recommendations")
-            with col2:
-                if st.button("💾 Download as Excel", use_container_width=True):
-                    export_df = recs.copy()
-                    export_df['poster_url'] = export_df['title'].apply(get_poster_url)
-                    export_df['match_rank'] = range(1, len(export_df) + 1)
-                    export_df['similarity_percentage'] = (export_df['similarity_score'] * 100).astype(int).astype(str) + '%'
-                    
-                    cols_to_export = ['match_rank', 'title', 'type', 'listed_in', 'release_year', 'similarity_percentage', 'poster_url', 'description']
-                    export_df_final = export_df[[col for col in cols_to_export if col in export_df.columns]]
-                    
-                    with pd.ExcelWriter('recommendations_export.xlsx', engine='openpyxl') as writer:
-                        export_df_final.to_excel(writer, sheet_name='Recommendations', index=False)
-                    
-                    with open('recommendations_export.xlsx', 'rb') as f:
-                        st.download_button(
-                            label="✅ Click to download",
-                            data=f.read(),
-                            file_name=f"netflix_recommendations_{movie_title.replace(' ', '_')}.xlsx",
-                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                        )
-        elif "recommendations" in st.session_state and st.session_state.recommendations is None:
-            st.error("❌ Show not found")
-    
-    elif current_page == "📊 Analytics":
-        st.markdown("""
-        <div class="header-section">
-            <div class="main-title">Dataset <span class="title-accent">Intelligence</span></div>
-            <p class="tagline">Explore trends, genres, and content insights</p>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        df = pd.read_csv(data_path, encoding='latin-1')
-        
-        col1, col2, col3, col4 = st.columns(4)
-        with col1:
-            st.metric("📚 Total Content", len(df))
-        with col2:
-            st.metric("🎬 Movies", len(df[df['Series or Movie'] == 'Movie']))
-        with col3:
-            st.metric("📺 TV Shows", len(df[df['Series or Movie'] == 'Series']))
-        with col4:
-            genres_count = len(set(df['Genre'].str.split(',').explode().str.strip()))
-            st.metric("🎭 Genres", genres_count)
+        else:
+            tags_str = ", ".join(movie_title)
+            st.markdown(f"### Genres/Tags: **{tags_str}**")
+            all_movies_with_tags = pd.DataFrame()
+            for tag in movie_title:
+                movies_with_tag = recommender.df[recommender.df['listed_in'].str.contains(tag, case=False, na=False)]
+                all_movies_with_tags = pd.concat([all_movies_with_tags, movies_with_tag]).drop_duplicates()
+            movies_count = len(all_movies_with_tags)
+            st.caption(f"🏷️ {movies_count} movies/shows match these tags")
         
         st.markdown("---")
         
-        tab1, tab2, tab3, tab4 = st.tabs(["📊 Genres", "🎯 Type", "📅 Year", "📋 Data"])
+        st.markdown(f"### 🏆 Top {num_recs} Matches")
         
-        with tab1:
-            st.markdown("### Top 12 Genres")
-            genres = df['Genre'].str.split(',').explode().str.strip()
-            genre_counts = genres.value_counts().head(12)
-            fig, ax = plt.subplots(figsize=(12, 6))
-            ax.barh(genre_counts.index, genre_counts.values, color='#e50914', alpha=0.85)
-            ax.set_facecolor('#0a0a0a')
-            fig.patch.set_facecolor('#0a0a0a')
-            ax.spines['top'].set_visible(False)
-            ax.spines['right'].set_visible(False)
-            ax.spines['left'].set_color('#333333')
-            ax.spines['bottom'].set_color('#333333')
-            ax.tick_params(colors='#888888')
-            st.pyplot(fig)
+        for idx, (_, row) in enumerate(recs.iterrows(), 1):
+            st.markdown(
+                render_movie_card(
+                    idx,
+                    row['title'],
+                    row['listed_in'],
+                    row['release_year'],
+                    row['description'],
+                    row['similarity_score'],
+                    row.get('poster_url', ''),
+                    f"rec-{idx}"
+                ),
+                unsafe_allow_html=True
+            )
+            
+            if st.button(f"View Details", key=f"details-btn-{idx}", use_container_width=True):
+                movie_title_to_show = row['title']
+                movie_row = recommender.df[recommender.df['title'] == movie_title_to_show]
+                if len(movie_row) > 0:
+                    show_movie_details_dialog(movie_row.iloc[0].to_dict())
+        
+        st.markdown("---")
+        
+        col1, col2 = st.columns([2, 1])
+        with col1:
+            st.markdown("### 📥 Export Recommendations")
+        with col2:
+            if st.button("💾 Download as Excel", use_container_width=True):
+                export_df = recs.copy()
+                export_df['poster_url'] = export_df['title'].apply(get_poster_url)
+                export_df['match_rank'] = range(1, len(export_df) + 1)
+                export_df['similarity_percentage'] = (export_df['similarity_score'] * 100).astype(int).astype(str) + '%'
+                
+                cols_to_export = ['match_rank', 'title', 'type', 'listed_in', 'release_year', 'similarity_percentage', 'poster_url', 'description']
+                export_df_final = export_df[[col for col in cols_to_export if col in export_df.columns]]
+                
+                with pd.ExcelWriter('recommendations_export.xlsx', engine='openpyxl') as writer:
+                    export_df_final.to_excel(writer, sheet_name='Recommendations', index=False)
+                
+                with open('recommendations_export.xlsx', 'rb') as f:
+                    st.download_button(
+                        label="✅ Click to download",
+                        data=f.read(),
+                        file_name=f"netflix_recommendations_{movie_title.replace(' ', '_')}.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    )
+    elif "recommendations" in st.session_state and st.session_state.recommendations is None:
+        st.error("❌ Show not found")
+
+
+def render_analytics_page(data_path):
+    """Render analytics page with charts and insights"""
+    st.markdown("""
+    <div class="header-section">
+        <div class="main-title">Dataset <span class="title-accent">Intelligence</span></div>
+        <p class="tagline">Explore trends, genres, and content insights</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    df = pd.read_csv(data_path, encoding='latin-1')
+    
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.metric("📚 Total Content", len(df))
+    with col2:
+        st.metric("🎬 Movies", len(df[df['Series or Movie'] == 'Movie']))
+    with col3:
+        st.metric("📺 TV Shows", len(df[df['Series or Movie'] == 'Series']))
+    with col4:
+        genres_count = len(set(df['Genre'].str.split(',').explode().str.strip()))
+        st.metric("🎭 Genres", genres_count)
+    
+    st.markdown("---")
+    
+    tab1, tab2, tab3, tab4 = st.tabs(["📊 Genres", "🎯 Type", "📅 Year", "📋 Data"])
+    
+    with tab1:
+        st.markdown("### Top 12 Genres")
+        genres = df['Genre'].str.split(',').explode().str.strip()
+        genre_counts = genres.value_counts().head(12)
+        fig, ax = plt.subplots(figsize=(12, 6))
+        ax.barh(genre_counts.index, genre_counts.values, color='#e50914', alpha=0.85)
+        ax.set_facecolor('#0a0a0a')
+        fig.patch.set_facecolor('#0a0a0a')
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        ax.spines['left'].set_color('#333333')
+        ax.spines['bottom'].set_color('#333333')
+        ax.tick_params(colors='#888888')
+        st.pyplot(fig)
         
         with tab2:
             st.markdown("### Content Distribution")
@@ -1314,109 +1365,122 @@ def main():
         with tab4:
             st.markdown("### Dataset Preview")
             st.dataframe(df.head(25))
+
+
+def render_about_page():
+    """Render about page with technology and algorithm info"""
+    st.markdown("""
+    <div class="header-section">
+        <div class="main-title">About <span class="title-accent">Netflix AI</span></div>
+        <p class="tagline">Technology Behind Your Recommendations</p>
+    </div>
+    """, unsafe_allow_html=True)
     
+    col1, col2 = st.columns([1, 1])
+    
+    with col1:
+        st.markdown("""
+        <div class="premium-card">
+        <h3>🛠️ Technology Stack</h3>
+        <ul style="color: #cccccc; margin-left: 20px;">
+            <li><strong>Machine Learning</strong> - Scikit-learn</li>
+            <li><strong>NLP</strong> - NLTK tokenization</li>
+            <li><strong>Data Science</strong> - Pandas & NumPy</li>
+            <li><strong>Interface</strong> - Streamlit</li>
+            <li><strong>Visualization</strong> - Matplotlib</li>
+        </ul>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col2:
+        st.markdown("""
+        <div class="premium-card">
+        <h3>🧠 Algorithm</h3>
+        <ol style="color: #cccccc; margin-left: 20px;">
+            <li style="margin: 8px 0;">Parse show metadata</li>
+            <li style="margin: 8px 0;">TF-IDF vectorization</li>
+            <li style="margin: 8px 0;">Cosine similarity</li>
+            <li style="margin: 8px 0;">Rank by score</li>
+            <li style="margin: 8px 0;">Return matches</li>
+        </ol>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    st.markdown("---")
+    
+    with st.expander("📚 Deep Dive - Content-Based Filtering"):
+        st.markdown("""
+        **How It Works:**
+        - Analyzes show features (genre, cast, director, plot)
+        - Converts text to numerical vectors using TF-IDF
+        - Calculates similarity between all pairs using cosine distance
+        - Ranks shows by similarity score (0-1 scale)
+        - Returns top-N recommendations
+        
+        **Why This Approach:**
+        - No cold-start problem for new content
+        - Transparent, explainable recommendations
+        - Works with minimal data
+        - Fast computation
+        """)
+    
+    with st.expander("📊 TF-IDF Vectorization"):
+        st.markdown("""
+        **Term Frequency-Inverse Document Frequency**
+        
+        Converts text to meaningful numbers:
+        - **TF**: How often a word appears in a document
+        - **IDF**: How unique a word is across all documents
+        
+        Result: 5000-dimensional vectors capturing show essence
+        """)
+    
+    with st.expander("⚡ Cosine Similarity"):
+        st.markdown("""
+        **Measures angle between vectors**
+        
+        - Score 1.0 = Identical content
+        - Score 0.5 = Similar content
+        - Score 0.0 = Completely different
+        
+        Perfect for high-dimensional text data!
+        """)
+    
+    st.markdown("""
+    <div style="text-align: center; margin-top: 50px; padding: 30px; 
+                background: rgba(229, 9, 20, 0.08); border-radius: 12px;
+                border: 1px solid rgba(229, 9, 20, 0.2);">
+        <p style="font-size: 1.3em; color: #e50914; font-weight: 700; margin-bottom: 10px;">
+        Netflix AI Recommendation Engine
+        </p>
+        <p style="color: #888888; font-size: 0.95em;">
+        Powered by Machine Learning • Built with ❤️ Kartik Bhalodiya
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
+
+def main():
+    """Main application entry point"""
+    current_page = render_sidebar()
+    
+    if "page" not in st.session_state:
+        st.session_state.page = current_page
+    else:
+        st.session_state.page = current_page
+    
+    data_path = os.path.join(os.path.dirname(__file__), 'data', 'netflix_sample.csv')
+    current_page = st.session_state.page
+    
+    if current_page == "🏠 Home":
+        render_home_page()
+    elif current_page == "🎯 Discover":
+        render_discover_page(data_path)
+    elif current_page == "📊 Analytics":
+        render_analytics_page(data_path)
     elif current_page == "ℹ️ About":
-        st.markdown("""
-        <div class="header-section">
-            <div class="main-title">About <span class="title-accent">Netflix AI</span></div>
-            <p class="tagline">Technology Behind Your Recommendations</p>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        col1, col2 = st.columns([1, 1])
-        
-        with col1:
-            st.markdown("""
-            <div class="premium-card">
-            <h3>🛠️ Technology Stack</h3>
-            <ul style="color: #cccccc; margin-left: 20px;">
-                <li><strong>Machine Learning</strong> - Scikit-learn</li>
-                <li><strong>NLP</strong> - NLTK tokenization</li>
-                <li><strong>Data Science</strong> - Pandas & NumPy</li>
-                <li><strong>Interface</strong> - Streamlit</li>
-                <li><strong>Visualization</strong> - Matplotlib</li>
-            </ul>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        with col2:
-            st.markdown("""
-            <div class="premium-card">
-            <h3>🧠 Algorithm</h3>
-            <ol style="color: #cccccc; margin-left: 20px;">
-                <li style="margin: 8px 0;">Parse show metadata</li>
-                <li style="margin: 8px 0;">TF-IDF vectorization</li>
-                <li style="margin: 8px 0;">Cosine similarity</li>
-                <li style="margin: 8px 0;">Rank by score</li>
-                <li style="margin: 8px 0;">Return matches</li>
-            </ol>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        st.markdown("---")
-        
-        with st.expander("📚 Deep Dive - Content-Based Filtering"):
-            st.markdown("""
-            **How It Works:**
-            - Analyzes show features (genre, cast, director, plot)
-            - Converts text to numerical vectors using TF-IDF
-            - Calculates similarity between all pairs using cosine distance
-            - Ranks shows by similarity score (0-1 scale)
-            - Returns top-N recommendations
-            
-            **Why This Approach:**
-            - No cold-start problem for new content
-            - Transparent, explainable recommendations
-            - Works with minimal data
-            - Fast computation
-            """)
-        
-        with st.expander("📊 TF-IDF Vectorization"):
-            st.markdown("""
-            **Term Frequency-Inverse Document Frequency**
-            
-            Converts text to meaningful numbers:
-            - **TF**: How often a word appears in a document
-            - **IDF**: How unique a word is across all documents
-            
-            Result: 5000-dimensional vectors capturing show essence
-            """)
-        
-        with st.expander("⚡ Cosine Similarity"):
-            st.markdown("""
-            **Measures angle between vectors**
-            
-            - Score 1.0 = Identical content
-            - Score 0.5 = Similar content
-            - Score 0.0 = Completely different
-            
-            Perfect for high-dimensional text data!
-            """)
-        
-        st.markdown("""
-        <div style="text-align: center; margin-top: 50px; padding: 30px; 
-                    background: rgba(229, 9, 20, 0.08); border-radius: 12px;
-                    border: 1px solid rgba(229, 9, 20, 0.2);">
-            <p style="font-size: 1.3em; color: #e50914; font-weight: 700; margin-bottom: 10px;">
-            Netflix AI Recommendation Engine
-            </p>
-            <p style="color: #888888; font-size: 0.95em;">
-            Powered by Machine Learning • Built with ❤️ Kartik Bhalodiya
-            </p>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    if "show_modal" not in st.session_state:
-        st.session_state.show_modal = False
-    
-    if st.session_state.show_modal and "selected_movie" in st.session_state:
-        modal_html = render_movie_details_modal(st.session_state.selected_movie)
-        st.html(modal_html)
-        
-        if st.button("✕ Close", use_container_width=True, key="close_modal_btn", help="Close the modal"):
-            st.session_state.show_modal = False
-            st.session_state.selected_movie = None
-            st.rerun()
+        render_about_page()
+
 
 if __name__ == "__main__":
     main()
